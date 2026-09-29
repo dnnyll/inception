@@ -1,0 +1,40 @@
+services:
+  mariadb:
+    # Build the MariaDB image from this directory.
+    build:
+      context: ./requirements/mariadb
+
+    # Name of the running container.
+    container_name: mariadb
+
+    # Load MYSQL_DATABASE, MYSQL_USER, and DOMAIN_NAME.
+    env_file:
+      - .env
+
+    # Provide passwords to the container as secret files.
+    secrets:
+      - db_password
+      - db_root_password
+
+    # Store MariaDB data outside the container.
+    volumes:
+      - mariadb_data:/var/lib/mysql
+
+    # Connect MariaDB to the project network.
+    networks:
+      - inception
+
+# Named volume for persistent MariaDB data.
+volumes:
+  mariadb_data:
+
+# Internal network used by the project containers.
+networks:
+  inception:
+
+# Map Docker secrets to files inside the container.
+secrets:
+  db_password:
+    file: ../secrets/db_password.txt
+  db_root_password:
+    file: ../secrets/db_root_password.txt
