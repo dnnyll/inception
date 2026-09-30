@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     mariadb-client \
     && rm -rf /var/lib/apt/lists/*
 
+RUN rm -rf /var/lib/mysql/*
 # Copy our custom MariaDB config (overrides default bind-address etc.)
 COPY conf/my.cnf /etc/mysql/mariadb.conf.d/50-server.cnf
 

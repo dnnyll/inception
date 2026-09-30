@@ -1,63 +1,71 @@
 #!/bin/bash
 
-# Stop the script if any command fails.
 set -e
 
-# Read the database password from the Docker secret file.
+mkdir -p /run/mysqld
+chown mysql:mysql /run/mysqld
+
 MYSQL_PASSWORD="$(cat /run/secrets/db_password)"
-
-# Read the MariaDB root password from the Docker secret file.
 MYSQL_ROOT_PASSWORD="$(cat /run/secrets/db_root_password)"
+MYSQL_SECOND_PASSWORD="$(cat /run/secrets/db_second_password)"
 
-# Check whether MariaDB has already been initialized.
+: "${MYSQL_DATABASE:?MYSQL_DATABASE is not set}"
+: "${MYSQL_USER:?MYSQL_USER is not set}"
+: "${MYSQL_SECOND_USER:?MYSQL_SECOND_USER is not set}"
+
 if [ ! -d "/var/lib/mysql/mysql" ]; then
+    echo "Initializing MariaDB..."
 
-    # Initialize MariaDB's system tables and data directory.
     mariadb-install-db \
         --user=mysql \
         --datadir=/var/lib/mysql
 
-    # Start a temporary MariaDB server without network access.
     mysqld_safe \
         --datadir=/var/lib/mysql \
         --skip-networking &
 
-    # Wait until MariaDB is ready.
+    TEMP_SERVER_PID=$!
+
     until mariadb-admin ping --silent; do
         sleep 1
     done
 
-    # Create the application database and user.
-    mariadb -u root <<-EOSQL
+    mariadb -u root <<EOSQL
+DROP USER IF EXISTS ''@'localhost';
+DROP USER IF EXISTS ''@'${HOSTNAME}';
 
-        # Create the database.
-        CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE}\`;
+CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE}\`;
 
-        # Create the WordPress database user.
-        CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%'
-            IDENTIFIED BY '${MYSQL_PASSWORD}';
+CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%'
+    IDENTIFIED BY '${MYSQL_PASSWORD}';
 
-        # Give the user permissions on the WordPress database.
-        GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE}\`.*
-            TO '${MYSQL_USER}'@'%';
+GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE}\`.*
+    TO '${MYSQL_USER}'@'%';
 
-        # Set the MariaDB root password.
-        ALTER USER 'root'@'localhost'
-            IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
+CREATE USER IF NOT EXISTS '${MYSQL_SECOND_USER}'@'%'
+    IDENTIFIED BY '${MYSQL_SECOND_PASSWORD}';
 
-        # Reload MariaDB privileges.
-        FLUSH PRIVILEGES;
+GRANT SELECT, INSERT, UPDATE, DELETE
+    ON \`${MYSQL_DATABASE}\`.*
+    TO '${MYSQL_SECOND_USER}'@'%';
 
+ALTER USER 'root'@'localhost'
+    IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
+
+FLUSH PRIVILEGES;
 EOSQL
 
-    # Stop the temporary MariaDB server.
     mariadb-admin \
         -u root \
         -p"${MYSQL_ROOT_PASSWORD}" \
         shutdown
+
+    wait "$TEMP_SERVER_PID" 2>/dev/null || true
+
+    echo "MariaDB initialization complete."
 fi
 
-# Start MariaDB normally as the main container process.
 exec mysqld \
     --user=mysql \
-    --datadir=/var/lib/mysql
+    --datadir=/var/lib/mysql \
+    --bind-address=0.0.0.0
