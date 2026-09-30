@@ -29,6 +29,7 @@ services:
 
     restart: unless-stopped
 
+
 #  wordpress
 
   wordpress:
@@ -59,12 +60,46 @@ services:
 
     restart: unless-stopped
 
+
+#  nginx
+
+  nginx:
+    build:
+      context: ./requirements/nginx
+
+    container_name: nginx
+
+    ports:
+      - "443:443"
+
+    volumes:
+      - wordpress_data:/var/www/html:ro
+
+    networks:
+      - inception
+
+    depends_on:
+      - wordpress
+
+    restart: unless-stopped
+
+
 #  common area
 
 # Named volume for persistent MariaDB data.
 volumes:
   mariadb_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/daniefe2/data/mariadb
   wordpress_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/daniefe2/data/wordpress
 
 # Internal network used by the project containers.
 networks:
