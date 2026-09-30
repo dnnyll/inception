@@ -1,3 +1,5 @@
+#  mariadb
+
 services:
   mariadb:
     # Build the MariaDB image from this directory.
@@ -15,6 +17,7 @@ services:
     secrets:
       - db_password
       - db_root_password
+      - db_second_password
 
     # Store MariaDB data outside the container.
     volumes:
@@ -24,9 +27,44 @@ services:
     networks:
       - inception
 
+    restart: unless-stopped
+
+#  wordpress
+
+  wordpress:
+    build:
+      context: ./requirements/wordpress
+
+    container_name: wordpress
+
+    env_file:
+      - .env
+
+    environment:
+      WP_ADMIN_USER: daniefe2
+      WP_ADMIN_PASSWORD: guest
+      WP_ADMIN_EMAIL: daniefe2@examples.com
+
+    secrets:
+      - db_password
+
+    volumes:
+      - wordpress_data:/var/www/html
+
+    networks:
+      - inception
+
+    depends_on:
+      - mariadb
+
+    restart: unless-stopped
+
+#  common area
+
 # Named volume for persistent MariaDB data.
 volumes:
   mariadb_data:
+  wordpress_data:
 
 # Internal network used by the project containers.
 networks:
@@ -38,3 +76,6 @@ secrets:
     file: ../secrets/db_password.txt
   db_root_password:
     file: ../secrets/db_root_password.txt
+  db_second_password:
+    file: ../secrets/db_second_password.txt
+
