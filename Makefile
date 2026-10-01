@@ -31,6 +31,12 @@ users:
 	$(COMPOSE) exec wordpress \
 		wp user list --path=/var/www/html --allow-root
 
+tree:
+	tree -a -I '.git|secrets'
+
+secret-tree:
+	tree -a secrets
+
 clean: down
 
 fclean: down
@@ -38,5 +44,4 @@ fclean: down
 
 re: fclean build up
 
-.PHONY: all build up down restart status logs logs-follow config users clean fclean re
-
+.PHONY: all build up down restart status logs logs-follow config users tree secret-tree clean fclean re
