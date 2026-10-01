@@ -1,22 +1,42 @@
-NAME =		inception
-COMPOSE =	sudo docker compose -f srcs/docker-compose.yml
+NAME = inception
+COMPOSE = sudo docker compose -f srcs/docker-compose.yml
 
-all:		up
+all: up
 
 build:
-		$(COMPOSE) build
+	$(COMPOSE) build
 
 up:
-		$(COMPOSE) up -d
+	$(COMPOSE) up -d
 
 down:
-		$(COMPOSE) down
+	$(COMPOSE) down
 
-clean:		down
+restart:
+	$(COMPOSE) restart
 
-fclean:		down
-		sudo docker image rm -f srcs-nginx srcs-wordpress srcs-mariadb 2>/dev/null || true
+status:
+	$(COMPOSE) ps
 
-re:		fclean build up
+logs:
+	$(COMPOSE) logs
 
-.PHONY:		all build up down clean fclean re
+logs-follow:
+	$(COMPOSE) logs -f
+
+config:
+	$(COMPOSE) config
+
+users:
+	$(COMPOSE) exec wordpress \
+		wp user list --path=/var/www/html --allow-root
+
+clean: down
+
+fclean: down
+	sudo docker image rm -f srcs-nginx srcs-wordpress srcs-mariadb 2>/dev/null || true
+
+re: fclean build up
+
+.PHONY: all build up down restart status logs logs-follow config users clean fclean re
+
