@@ -43,11 +43,11 @@ services:
 
     environment:
       WP_ADMIN_USER: daniefe2
-      WP_ADMIN_PASSWORD: guest
       WP_ADMIN_EMAIL: daniefe2@examples.com
 
     secrets:
       - db_password
+      - wp_admin_password
 
     volumes:
       - wordpress_data:/var/www/html
@@ -113,4 +113,6 @@ secrets:
     file: ../secrets/db_root_password.txt
   db_second_password:
     file: ../secrets/db_second_password.txt
+  wp_admin_password:
+    file: ../secrets/wp_admin_password.txt
 

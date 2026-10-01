@@ -7,7 +7,7 @@ mkdir -p /run/php /var/www/html
 : "${MYSQL_USER:?MYSQL_USER is not set}"
 : "${DOMAIN_NAME:?DOMAIN_NAME is not set}"
 : "${WP_ADMIN_USER:?WP_ADMIN_USER is not set}"
-: "${WP_ADMIN_PASSWORD:?WP_ADMIN_PASSWORD is not set}"
+WP_ADMIN_PASSWORD="$(cat /run/secrets/wp_admin_password)"
 : "${WP_ADMIN_EMAIL:?WP_ADMIN_EMAIL is not set}"
 
 MYSQL_PASSWORD="$(cat /run/secrets/db_password)"
