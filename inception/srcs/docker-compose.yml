@@ -1,0 +1,118 @@
+#  mariadb
+
+services:
+  mariadb:
+    # Build the MariaDB image from this directory.
+    build:
+      context: ./requirements/mariadb
+
+    # Name of the running container.
+    container_name: mariadb
+
+    # Load MYSQL_DATABASE, MYSQL_USER, and DOMAIN_NAME.
+    env_file:
+      - .env
+
+    # Provide passwords to the container as secret files.
+    secrets:
+      - db_password
+      - db_root_password
+      - db_second_password
+
+    # Store MariaDB data outside the container.
+    volumes:
+      - mariadb_data:/var/lib/mysql
+
+    # Connect MariaDB to the project network.
+    networks:
+      - inception
+
+    restart: unless-stopped
+
+
+#  wordpress
+
+  wordpress:
+    build:
+      context: ./requirements/wordpress
+
+    container_name: wordpress
+
+    env_file:
+      - .env
+
+    environment:
+      WP_ADMIN_USER: daniefe2
+      WP_ADMIN_EMAIL: daniefe2@examples.com
+
+    secrets:
+      - db_password
+      - wp_admin_password
+
+    volumes:
+      - wordpress_data:/var/www/html
+
+    networks:
+      - inception
+
+    depends_on:
+      - mariadb
+
+    restart: unless-stopped
+
+
+#  nginx
+
+  nginx:
+    build:
+      context: ./requirements/nginx
+
+    container_name: nginx
+
+    ports:
+      - "443:443"
+
+    volumes:
+      - wordpress_data:/var/www/html:ro
+
+    networks:
+      - inception
+
+    depends_on:
+      - wordpress
+
+    restart: unless-stopped
+
+
+#  common area
+
+# Named volume for persistent MariaDB data.
+volumes:
+  mariadb_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/daniefe2/data/mariadb
+  wordpress_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/daniefe2/data/wordpress
+
+# Internal network used by the project containers.
+networks:
+  inception:
+
+# Map Docker secrets to files inside the container.
+secrets:
+  db_password:
+    file: ../secrets/db_password.txt
+  db_root_password:
+    file: ../secrets/db_root_password.txt
+  db_second_password:
+    file: ../secrets/db_second_password.txt
+  wp_admin_password:
+    file: ../secrets/wp_admin_password.txt
+
